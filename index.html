@@ -296,6 +296,52 @@
   footer.site { background: var(--forest); color: #dbe5d8; padding-block: 28px; font-size: .92rem; }
   footer.site .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 
+  /* date buttons + Jalali picker */
+  .date-btn {
+    width: 100%; text-align: right; font: inherit; font-size: 1rem; line-height: 1.6;
+    padding: 11px 14px; background: #fff; color: var(--muted);
+    border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer;
+  }
+  .date-btn.filled { color: var(--ink); }
+  .date-btn:focus-visible { border-color: var(--river); }
+  .native { display: none; }
+  .no-jalali .native { display: block; }
+  .no-jalali .date-btn { display: none; }
+  dialog.picker { border: 0; border-radius: 18px; padding: 0; width: min(94vw, 380px); color: var(--ink); background: #fff; box-shadow: 0 20px 60px rgba(8, 18, 14, .35); }
+  dialog.picker::backdrop { background: rgba(8, 18, 14, .6); }
+  .pk { padding: 16px 16px 18px; }
+  .pk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .pk-head strong { font-size: 1.1rem; color: var(--forest); }
+  .pk-nav { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--mist); font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--forest); }
+  .pk-nav:disabled { opacity: .35; cursor: default; }
+  .pk-week, .pk-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .pk-week span { text-align: center; font-size: .82rem; color: var(--muted); padding: 4px 0; }
+  .pk-grid { row-gap: 2px; }
+  .pk-day { height: 42px; border: 0; background: transparent; font: inherit; font-size: 1rem; color: var(--ink); cursor: pointer; border-radius: 10px; }
+  .pk-day:hover:not(:disabled):not(.is-in):not(.is-out) { background: var(--mist); }
+  .pk-day.today { box-shadow: inset 0 0 0 1.5px var(--moss); }
+  .pk-day.in-range { background: #dbe8e2; border-radius: 0; }
+  .pk-day.is-in, .pk-day.is-out { background: var(--river); color: #fff; font-weight: 700; }
+  .pk-day.booked { text-decoration: line-through; color: #9aa59d; }
+  .pk-day:disabled { color: #b5bdb6; cursor: default; }
+  .pk-info { margin: 10px 0 12px; min-height: 3.2em; font-size: .95rem; color: var(--forest); }
+  .pk-info.warn { color: var(--danger); }
+  .pk-foot { display: flex; gap: 10px; }
+  .pk-foot .btn { flex: 1; padding-block: 10px; }
+
+  /* stars */
+  .stars { display: flex; gap: 2px; }
+  .star { border: 0; background: none; padding: 0 3px; min-width: 44px; height: 46px; font-size: 2rem; line-height: 1; color: #ccd3c8; cursor: pointer; }
+  .star.on { color: #e0a526; }
+  .rate { color: #e0a526; letter-spacing: 2px; font-size: 1.05rem; line-height: 1.4; margin-bottom: 2px; }
+
+  /* nearby places */
+  .places { list-style: none; margin: 26px 0 0; padding: 0; border-bottom: 1px solid var(--line); }
+  .places li { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0; border-top: 1px solid var(--line); }
+  .places p { color: var(--muted); font-size: .96rem; line-height: 1.8; }
+  .places .btn { padding: 8px 18px; font-size: .92rem; white-space: nowrap; }
+  @media (max-width: 560px) { .places li { flex-direction: column; align-items: flex-start; gap: 8px; } }
+
   .route-title { margin: 28px 0 10px; color: var(--forest); }
   .maps { display: flex; flex-wrap: wrap; gap: 10px; }
   .fb-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
@@ -347,6 +393,7 @@
       <ul>
         <li><a href="#about">درباره</a></li>
         <li><a href="#gallery">گالری</a></li>
+        <li><a href="#nearby">دیدنی‌ها</a></li>
         <li><a href="#reserve">رزرو</a></li>
         <li><a href="#reviews">نظرات</a></li>
         <li><a href="#contact">تماس</a></li>
@@ -432,6 +479,21 @@
   </div>
 </dialog>
 
+<section class="nearby" id="nearby">
+  <div class="wrap">
+    <h2>جاهای دیدنی نزدیک</h2>
+    <p class="muted">فاصله‌ها تقریبی است. با زدن «نمایش روی نقشه»، مکان در نقشه‌ی گوگل باز می‌شود.</p>
+    <ul class="places">
+      <li><div><h3>آبشار جمشیدآباد</h3><p>حدود یک کیلومتر از اقامتگاه فاصله دارد.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=آبشار%20جمشیدآباد%20رودبار%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+      <li><div><h3>محوطه‌ی تاریخی جمشیدآباد</h3><p>محوطه‌ای از عصر آهن با قدمت بیش از ۳۰۰۰ سال، در همین روستا.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=محوطه%20تاریخی%20جمشیدآباد%20رودبار%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+      <li><div><h3>شهر رستم‌آباد</h3><p>حدود ۱۰ دقیقه تا اقامتگاه؛ برای تهیه‌ی مایحتاج.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=رستم%20آباد%20رودبار%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+      <li><div><h3>جنگل و روستای نقله‌بر</h3><p>جنگلی سرسبز در دهستان رستم‌آباد شمالی، با دید به درفک و جلگه‌ی سپیدرود.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=نقله%20بر%20رستم%20آباد%20رودبار%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+      <li><div><h3>قله‌ی درفک</h3><p>از تراس اقامتگاه دیده می‌شود.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=قله%20درفک%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+      <li><div><h3>آبشار کلشتر</h3><p>حدود ۳۰ کیلومتر از رستم‌آباد، در دل جنگل.</p></div><a class="btn outline" href="https://www.google.com/maps/search/?api=1&query=آبشار%20کلشتر%20رودبار%20گیلان" target="_blank" rel="noopener">نمایش روی نقشه</a></li>
+    </ul>
+  </div>
+</section>
+
 <section id="reserve">
   <div class="wrap">
     <h2>درخواست رزرو</h2>
@@ -448,12 +510,14 @@
           <input class="ltr" type="tel" id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="09123456789" required>
         </div>
         <div class="field">
-          <label for="checkin">تاریخ ورود</label>
-          <input type="date" id="checkin" name="checkin" required>
+          <label for="ciBtn">تاریخ ورود</label>
+          <button class="date-btn" type="button" id="ciBtn">انتخاب تاریخ ورود</button>
+          <input class="native" type="date" id="checkin" name="checkin" aria-label="تاریخ ورود">
         </div>
         <div class="field">
-          <label for="checkout">تاریخ خروج</label>
-          <input type="date" id="checkout" name="checkout" required>
+          <label for="coBtn">تاریخ خروج</label>
+          <button class="date-btn" type="button" id="coBtn">انتخاب تاریخ خروج</button>
+          <input class="native" type="date" id="checkout" name="checkout" aria-label="تاریخ خروج">
         </div>
         <div class="summary" id="summary" aria-live="polite"></div>
         <div class="field full">
@@ -492,6 +556,7 @@
 <section class="reviews" id="reviews">
   <div class="wrap">
     <h2>نظرات مهمانان</h2>
+    <!-- برای نمایش امتیاز زیر هر نظر، این خط را اول blockquote بگذارید: <div class="rate" aria-label="امتیاز ۵ از ۵">★★★★★</div> -->
     <div class="review-list">
       <blockquote class="review"><p>عالی</p><footer>محمد رضایی، تیر ۱۴۰۴</footer></blockquote>
       <blockquote class="review"><p>اقامتی بسیار آرامش‌بخش با چشم‌اندازی فوق‌العاده. حتماً دوباره می‌آییم!</p><footer>علی محمدی، تیر ۱۴۰۳</footer></blockquote>
@@ -513,6 +578,17 @@
         <div class="field full">
           <label for="rPhone">شماره تماس <span class="opt">(اختیاری)</span></label>
           <input class="ltr" type="tel" id="rPhone" inputmode="tel">
+        </div>
+        <div class="field full">
+          <span class="label" id="rateLabel">امتیاز شما</span>
+          <div class="stars" id="stars" role="radiogroup" aria-labelledby="rateLabel">
+            <button class="star" type="button" data-v="1" role="radio" aria-checked="false" aria-label="۱ از ۵">★</button>
+            <button class="star" type="button" data-v="2" role="radio" aria-checked="false" aria-label="۲ از ۵">★</button>
+            <button class="star" type="button" data-v="3" role="radio" aria-checked="false" aria-label="۳ از ۵">★</button>
+            <button class="star" type="button" data-v="4" role="radio" aria-checked="false" aria-label="۴ از ۵">★</button>
+            <button class="star" type="button" data-v="5" role="radio" aria-checked="false" aria-label="۵ از ۵">★</button>
+          </div>
+          <p class="hint" id="rateHint">روی ستاره‌ها بزنید</p>
         </div>
         <div class="field full">
           <label for="rText">نظر شما</label>
@@ -563,6 +639,23 @@
   </div>
 </footer>
 
+<dialog class="picker" id="picker" aria-label="انتخاب تاریخ (شمسی)">
+  <div class="pk">
+    <div class="pk-head">
+      <button class="pk-nav" type="button" id="pkPrev" aria-label="ماه قبل">›</button>
+      <strong id="pkTitle"></strong>
+      <button class="pk-nav" type="button" id="pkNext" aria-label="ماه بعد">‹</button>
+    </div>
+    <div class="pk-week" aria-hidden="true"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span></div>
+    <div class="pk-grid" id="pkGrid"></div>
+    <p class="pk-info" id="pkInfo" aria-live="polite"></p>
+    <div class="pk-foot">
+      <button class="btn primary" type="button" id="pkOk" disabled>تأیید</button>
+      <button class="btn outline" type="button" id="pkCancel">بستن</button>
+    </div>
+  </div>
+</dialog>
+
 <div class="dock" id="dock">
   <a class="btn outline" href="tel:+989380233594">تماس</a>
   <a class="btn primary" href="#reserve">درخواست رزرو</a>
@@ -574,6 +667,10 @@
     // ایمیلی که درخواست‌های رزرو و نظرها به آن ارسال می‌شود (از طریق سرویس رایگان FormSubmit).
     // بار اول یک ایمیل «فعال‌سازی» برای شما می‌آید؛ روی دکمه‌ی داخل آن بزنید.
     notifyEmail: "113alireza.r.l.m79@gmail.com",
+
+    // اختیاری: کلید Web3Forms. اگر پر شود، ابتدا از آن استفاده می‌شود و FormSubmit پشتیبان است.
+    // (در web3forms.com ایمیل خود را وارد کنید تا کلید برایتان ارسال شود)
+    web3formsKey: "",
 
     // حداکثر تعداد نفرات در فرم رزرو
     maxGuests: 6,
@@ -663,7 +760,10 @@
       : "لوازم خواب برای دو نفر آماده است.";
   });
 
-  async function send(payload) {
+  let lastSendErrors = [];
+  const DEBUG = /[?&]debug/.test(location.search);
+
+  async function viaFormSubmit(payload) {
     const { subject, botcheck, ...fields } = payload;
     const r = await fetch("https://formsubmit.co/ajax/" + CONFIG.notifyEmail, {
       method: "POST",
@@ -671,10 +771,30 @@
       body: JSON.stringify({ _subject: subject, _template: "table", _captcha: "false", ...fields })
     });
     const data = await r.json();
-    if (!(data.success === true || data.success === "true")) {
-      console.warn("FormSubmit:", data.message || data);
-      throw new Error(data.message || "failed");
+    if (!(data.success === true || data.success === "true")) throw new Error(data.message || "failed");
+  }
+
+  async function viaWeb3Forms(payload) {
+    const r = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ access_key: CONFIG.web3formsKey, from_name: "سایت اقامتگاه عمو حسین", ...payload })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.message || "failed");
+  }
+
+  // با هر سرویسی که کار کند، درخواست به ایمیل میزبان می‌رسد
+  async function send(payload) {
+    const providers = [];
+    if (CONFIG.web3formsKey) providers.push(["Web3Forms", viaWeb3Forms]);
+    if (CONFIG.notifyEmail) providers.push(["FormSubmit", viaFormSubmit]);
+    lastSendErrors = [];
+    for (const [name, fn] of providers) {
+      try { await fn(payload); return; }
+      catch (e) { lastSendErrors.push(`${name}: ${e.message}`); console.warn(name, e); }
     }
+    throw new Error(lastSendErrors.join(" | ") || "no-provider");
   }
 
   const failText = `ارسال انجام نشد. لطفاً با <a href="tel:+98${CONFIG.phone.slice(1)}">${faDigits(CONFIG.phone)}</a> تماس بگیرید یا در <a href="https://t.me/${CONFIG.phone}" target="_blank" rel="noopener">تلگرام</a> پیام بدهید.`;
@@ -691,6 +811,12 @@
          <a class="btn outline" data-copy href="https://t.me/${CONFIG.phone}" target="_blank" rel="noopener">ارسال در تلگرام</a>
          <button class="btn outline" type="button" data-copy>کپی متن درخواست</button>
        </div>`);
+    if (DEBUG) {
+      const d = document.createElement("p");
+      d.className = "hint"; d.dir = "ltr"; d.style.marginTop = "10px";
+      d.textContent = "debug: " + (lastSendErrors.join(" | ") || "no provider configured");
+      el.appendChild(d);
+    }
     el.querySelectorAll("[data-copy]").forEach(x => x.addEventListener("click", () => {
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => {
         if (x.tagName === "BUTTON") x.textContent = "کپی شد";
@@ -744,6 +870,7 @@
       setStatus(statusEl, "ok", `درخواست شما ثبت شد. میزبان به‌زودی با شماره ${phone} تماس می‌گیرد و رزرو را تأیید می‌کند.`);
       $("#bookingForm").reset();
       guests.value = 2; summary.className = "summary"; summary.textContent = "";
+      syncDateButtons();
     } catch (err) {
       showFallback(statusEl, message);
     } finally {
@@ -751,12 +878,115 @@
     }
   });
 
+
+  /* ---------- Stars ---------- */
+  let rating = 0;
+  const starBtns = [...document.querySelectorAll(".star")];
+  function paintStars() {
+    starBtns.forEach(b => {
+      const v = Number(b.dataset.v);
+      b.classList.toggle("on", v <= rating);
+      b.setAttribute("aria-checked", String(v === rating));
+    });
+    $("#rateHint").textContent = rating ? `${faNum(rating)} از ۵` : "روی ستاره‌ها بزنید";
+  }
+  starBtns.forEach(b => b.addEventListener("click", () => { rating = Number(b.dataset.v); paintStars(); }));
+
+  /* ---------- Jalali date picker ---------- */
+  const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+  const jFmt = new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn", { year: "numeric", month: "numeric", day: "numeric" });
+  const jp = d => { const o = {}; jFmt.formatToParts(d).forEach(p => { if (p.type !== "literal") o[p.type] = Number(p.value); }); return o; };
+  const jalaliOK = (() => { try { return jp(new Date(2030, 4, 10)).year === 1409; } catch (e) { return false; } })();
+  if (!jalaliOK) document.documentElement.classList.add("no-jalali");
+
+  const monthStart = d => addDays(d, -(jp(d).day - 1));
+  const nextMonthStart = f => { let x = addDays(f, 28); while (jp(x).day !== 1) x = addDays(x, 1); return x; };
+  const prevMonthStart = f => monthStart(addDays(f, -1));
+
+  const picker = $("#picker"), pkGrid = $("#pkGrid"), pkInfo = $("#pkInfo"), pkOk = $("#pkOk");
+  const today0 = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+  const todayISO = toISO(new Date());
+  let view = null, sel = { in: "", out: "" }, phase = "in";
+  const isBookedNight = iso => CONFIG.booked.some(([s, e]) => iso >= s && iso < e);
+
+  function syncDateButtons() {
+    const a = $("#ciBtn"), b = $("#coBtn");
+    a.textContent = ci.value ? fullFa(parseDay(ci.value)) : "انتخاب تاریخ ورود";
+    b.textContent = co.value ? fullFa(parseDay(co.value)) : "انتخاب تاریخ خروج";
+    a.classList.toggle("filled", !!ci.value);
+    b.classList.toggle("filled", !!co.value);
+  }
+
+  function renderPicker(warn) {
+    const first = view, next = nextMonthStart(first), j = jp(first);
+    $("#pkTitle").textContent = `${MONTHS[j.month - 1]} ${faDigits(j.year)}`;
+    $("#pkPrev").disabled = prevMonthStart(first) < monthStart(today0());
+    pkGrid.innerHTML = "";
+    const lead = (first.getDay() + 1) % 7;           // هفته از شنبه شروع می‌شود
+    for (let i = 0; i < lead; i++) pkGrid.appendChild(document.createElement("span"));
+    for (let x = new Date(first); x < next; x = addDays(x, 1)) {
+      const iso = toISO(x), b = document.createElement("button");
+      b.type = "button";
+      b.className = "pk-day";
+      b.textContent = faDigits(jp(x).day);
+      b.dataset.iso = iso;
+      b.setAttribute("aria-label", fullFa(x));
+      const booked = isBookedNight(iso);
+      if (iso < todayISO || (booked && phase === "in")) b.disabled = true;
+      if (booked) b.classList.add("booked");
+      if (iso === todayISO) b.classList.add("today");
+      if (iso === sel.in) b.classList.add("is-in");
+      if (iso === sel.out) b.classList.add("is-out");
+      if (sel.in && sel.out && iso > sel.in && iso < sel.out) b.classList.add("in-range");
+      pkGrid.appendChild(b);
+    }
+    pkOk.disabled = !(sel.in && sel.out);
+    pkInfo.className = "pk-info" + (warn ? " warn" : "");
+    if (warn) pkInfo.textContent = warn;
+    else if (sel.in && sel.out) {
+      const nights = Math.round((parseDay(sel.out) - parseDay(sel.in)) / 864e5);
+      pkInfo.textContent = `${faNum(nights)} شب: ${fullFa(parseDay(sel.in))} تا ${fullFa(parseDay(sel.out))}`;
+    } else pkInfo.textContent = phase === "in" ? "تاریخ ورود را انتخاب کنید." : "حالا تاریخ خروج را انتخاب کنید.";
+  }
+
+  function openPicker(which) {
+    sel = { in: ci.value, out: co.value };
+    if (which === "out" && sel.in) { phase = "out"; sel.out = ""; } else phase = "in";
+    view = monthStart(sel.in ? parseDay(sel.in) : today0());
+    renderPicker();
+    picker.showModal();
+  }
+
+  pkGrid.addEventListener("click", e => {
+    const b = e.target.closest(".pk-day");
+    if (!b || b.disabled) return;
+    const iso = b.dataset.iso;
+    if (phase === "in" || iso <= sel.in) { sel = { in: iso, out: "" }; phase = "out"; renderPicker(); return; }
+    if (overlapsBooked(parseDay(sel.in), parseDay(iso))) {
+      renderPicker("در این بازه اقامتگاه رزرو شده است. تاریخ دیگری انتخاب کنید.");
+      return;
+    }
+    sel.out = iso; phase = "in"; renderPicker();
+  });
+  $("#pkPrev").addEventListener("click", () => { view = prevMonthStart(view); renderPicker(); });
+  $("#pkNext").addEventListener("click", () => { view = nextMonthStart(view); renderPicker(); });
+  $("#pkCancel").addEventListener("click", () => picker.close());
+  picker.addEventListener("click", e => { if (e.target === picker) picker.close(); });
+  pkOk.addEventListener("click", () => {
+    ci.value = sel.in; co.value = sel.out;
+    updateSummary(); syncDateButtons(); setStatus(statusEl, "", "");
+    picker.close();
+  });
+  $("#ciBtn").addEventListener("click", () => openPicker("in"));
+  $("#coBtn").addEventListener("click", () => openPicker("out"));
+
   /* ---------- Review form ---------- */
   $("#reviewForm").addEventListener("submit", async e => {
     e.preventDefault();
     const el = $("#reviewStatus");
     const name = $("#rName").value.trim(), family = $("#rFamily").value.trim(), text = $("#rText").value.trim();
     if (!name || !family || !text) return setStatus(el, "err", "نام، نام خانوادگی و متن نظر را وارد کنید.");
+    if (!rating) return setStatus(el, "err", "لطفاً با ستاره‌ها به اقامتگاه امتیاز بدهید.");
     const btn = $("#reviewBtn");
     btn.disabled = true; btn.textContent = "در حال ارسال…";
     try {
@@ -764,10 +994,12 @@
         subject: `نظر جدید مهمان: ${name} ${family}`,
         "نام": name, "نام خانوادگی": family,
         "شماره تماس": $("#rPhone").value.trim() || "—",
+        "امتیاز": `${rating} از ۵`,
         "نظر": text, botcheck: ""
       });
       setStatus(el, "ok", "نظر شما ارسال شد و بعد از تأیید میزبان نمایش داده می‌شود. سپاسگزاریم.");
       $("#reviewForm").reset();
+      rating = 0; paintStars();
     } catch (err) {
       setStatus(el, "err", failText);
     } finally {
