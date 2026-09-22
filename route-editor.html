@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ثبت مسیر دقیق | اقامتگاه عمو حسین</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1f3d32">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mist: #f0f2ee;
+    --paper: #fafbf8;
+    --ink: #14261f;
+    --muted: #55645c;
+    --forest: #1f3d32;
+    --moss: #5b7a4d;
+    --river: #2a6c7d;
+    --river-dark: #1d5464;
+    --line: #d5dbd0;
+    --bark: #a7844f;
+    --font: "Vazirmatn", "Vazir", Tahoma, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--mist);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--river); outline-offset: 2px; }
+
+  .top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+    padding-top: calc(9px + env(safe-area-inset-top, 0px));
+    background: var(--forest);
+    color: #fff;
+  }
+  .top strong { font-size: 1.02rem; font-weight: 800; }
+  .top a { text-decoration: none; font-size: .92rem; font-weight: 500; opacity: .95; white-space: nowrap; }
+  .top a:hover { text-decoration: underline; text-underline-offset: 5px; }
+
+  /* ---------- map ---------- */
+  #map {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 220px;
+    overflow: hidden;
+    direction: ltr;
+    background: #dfe6dc;
+    background-image: linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #map.dragging { cursor: grabbing; }
+  #tiles { position: absolute; inset: 0; }
+  .tile {
+    position: absolute;
+    left: 0; top: 0;
+    width: 256px; height: 256px;
+    opacity: 0;
+    transition: opacity .25s;
+    filter: saturate(.85);
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .tile.ok { opacity: 1; }
+  #overlay { position: absolute; inset: 0; pointer-events: none; }
+  #overlay path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  #casing { stroke: #fff; stroke-width: 11; opacity: .92; }
+  #ghost  { stroke: #9fc3cb; stroke-width: 6; }
+  #dirt   { stroke: var(--bark); stroke-width: 5; stroke-dasharray: 1 10; }
+  #prog   { stroke: var(--river); stroke-width: 6; }
+
+  .mk { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; z-index: 3; }
+  .mk .dot {
+    position: absolute; left: -10px; top: -10px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; border: 5px solid var(--river);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+  }
+  .mk.end .dot { border-color: var(--forest); background: #fff; }
+  .mk .pulse {
+    position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(31, 61, 50, .38); animation: pulse 1.9s ease-out infinite;
+  }
+  .mk .lbl {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    white-space: nowrap; background: #fff; color: var(--ink);
+    padding: 1px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; line-height: 1.7;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .3); direction: rtl;
+  }
+  .mk.end .lbl { background: var(--forest); color: #fff; bottom: 22px; }
+  @keyframes pulse { 0% { transform: scale(.35); opacity: .95; } 100% { transform: scale(1.35); opacity: 0; } }
+  .car { z-index: 4; visibility: hidden; }
+  .car .body {
+    position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%;
+    background: #fff; display: grid; place-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .45); border: 2px solid var(--river);
+  }
+
+  #pts circle { fill: #fff; stroke: #c0392b; stroke-width: 2.5; }
+  #pts circle.first { stroke: var(--river); }
+  #editPanel { display: none; }
+  .edit .panel:not(#editPanel) { display: none; }
+  .edit #editPanel { display: block; }
+  #eOut {
+    width: 100%; margin-top: 8px; font: 12px/1.4 ui-monospace, Consolas, monospace; direction: ltr; text-align: left;
+    border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 8px; resize: vertical; min-height: 54px; background: #fff; color: var(--ink);
+  }
+  .edit .panel { max-height: 40vh; }
+  #eDet summary { cursor: pointer; }
+  .zoom { position: absolute; top: 10px; left: 10px; z-index: 6; display: grid; gap: 6px; }
+  .zoom button {
+    width: 40px; height: 40px; border: 0; border-radius: 10px; background: #fff; color: var(--forest);
+    font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer; box-shadow: 0 1px 6px rgba(0, 0, 0, .3);
+  }
+  .attrib {
+    position: absolute; right: 0; bottom: 0; z-index: 6; direction: ltr;
+    background: rgba(255, 255, 255, .8); padding: 0 6px; font: 11px/1.6 system-ui, sans-serif; color: #333;
+  }
+  .attrib a { color: #0b5f7a; }
+  .notice {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 7;
+    background: #fff; color: var(--ink); padding: 4px 14px; border-radius: 999px; font-size: .88rem; direction: rtl;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, .3); max-width: 90%; text-align: center;
+  }
+  .notice[hidden] { display: none; }
+
+  /* ---------- panel ---------- */
+  .panel {
+    flex: none;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 20px rgba(20, 38, 31, .12);
+  }
+  .sum { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 14px; }
+  .sum strong { color: var(--forest); font-weight: 800; }
+  #stats { font-size: .93rem; color: var(--river-dark); font-weight: 700; }
+  .ctl { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  #scrub { flex: 1; min-width: 0; accent-color: var(--river); height: 32px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 16px; border-radius: 10px; font: inherit; font-size: .95rem; font-weight: 700;
+    text-decoration: none; cursor: pointer; border: 1.5px solid var(--forest); background: transparent; color: var(--forest);
+    transition: background-color .15s, color .15s;
+  }
+  .btn:hover { background: var(--forest); color: #fff; }
+  .btn.primary { background: var(--river); border-color: var(--river); color: #fff; }
+  .btn.primary:hover { background: var(--river-dark); border-color: var(--river-dark); }
+  .btn[aria-pressed="true"] { background: var(--forest); color: #fff; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .row .btn { padding: 5px 14px; font-size: .9rem; }
+  .hint { margin: 8px 0 0; font-size: .86rem; color: var(--muted); line-height: 1.75; }
+  .legend { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 26px; border-top: 5px dotted var(--bark); }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .links .lead { width: 100%; font-size: .86rem; color: var(--muted); font-weight: 700; }
+
+  .main { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+  .panel { max-height: 55vh; overflow-y: auto; }
+  @media (min-width: 900px) {
+    .main { flex-direction: row; }
+    .panel { order: -1; width: 380px; max-height: none; border-top: 0; border-inline-end: 1px solid var(--line); box-shadow: none; padding: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .mk .pulse { animation: none; } .tile { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <strong>مسیر تا اقامتگاه عمو حسین</strong>
+  <a href="./">بازگشت به سایت ←</a>
+</header>
+
+<div class="main">
+  <div id="map" role="application" aria-label="نقشه‌ی مسیر از رستم‌آباد تا اقامتگاه">
+    <div id="tiles"></div>
+    <svg id="overlay" aria-hidden="true">
+      <path id="casing"></path>
+      <path id="ghost"></path>
+      <path id="dirt"></path>
+      <path id="prog"></path>
+      <g id="pts"></g>
+    </svg>
+    <div class="mk start" id="mkStart"><div class="dot"></div><div class="lbl">رستم‌آباد</div></div>
+    <div class="mk end" id="mkEnd"><div class="pulse"></div><div class="dot"></div><div class="lbl">اقامتگاه عمو حسین</div></div>
+    <div class="mk car" id="car">
+      <div class="body" id="carBody">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2.5 L19.5 21 L12 16.8 L4.5 21 Z" fill="#2a6c7d"/></svg>
+      </div>
+    </div>
+    <div class="zoom">
+      <button type="button" id="zin" aria-label="بزرگ‌نمایی">+</button>
+      <button type="button" id="zout" aria-label="کوچک‌نمایی">−</button>
+    </div>
+    <div class="notice" id="notice" hidden></div>
+    <div class="attrib">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+  </div>
+
+  <section class="panel" id="editPanel" aria-label="ابزار ثبت مسیر دقیق">
+    <div class="sum"><strong>ثبت مسیر دقیق (فقط برای میزبان)</strong><span id="eInfo">۰ نقطه</span></div>
+    <p class="hint">نقشه را زوم کنید و از رستم‌آباد تا اقامتگاه <b>روی جاده تپ کنید</b> (هر ۱۰۰ تا ۲۰۰ متر یک نقطه، سر پیچ‌ها بیشتر). در آخر «کپی مسیر» را بزنید و متن را برای من بفرستید.</p>
+    <div class="row">
+      <button type="button" class="btn" id="eUndo">حذف آخرین</button>
+      <button type="button" class="btn" id="eClear">پاک‌کردن</button>
+      <button type="button" class="btn" id="eGps" aria-pressed="false">ضبط با GPS</button>
+      <button type="button" class="btn" id="ePreview">پیش‌نمایش</button>
+      <button type="button" class="btn primary" id="eCopy">کپی مسیر</button>
+    </div>
+    <p class="hint" id="eMsg"></p>
+    <details id="eDet"><summary class="hint">متن مسیر و راهنمای GPS</summary>
+      <textarea id="eOut" readonly aria-label="متن مسیر"></textarea>
+      <p class="hint">«ضبط با GPS» فقط وقتی کار می‌کند که این صفحه روی سایت خودتان (آدرس https) باز باشد و خودتان در مسیر باشید: ضبط را بزنید، با خودرو از رستم‌آباد تا اقامتگاه بروید و «توقف ضبط» را بزنید.</p>
+    </details>
+  </section>
+
+  <section class="panel" aria-label="کنترل انیمیشن مسیر">
+    <div class="sum">
+      <strong>رستم‌آباد ← اقامتگاه عمو حسین</strong>
+      <span id="stats">در حال دریافت مسیر…</span>
+    </div>
+    <div class="ctl">
+      <button type="button" class="btn primary" id="play" aria-label="پخش یا توقف">توقف</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0" dir="ltr" aria-label="پیشرفت مسیر">
+    </div>
+    <div class="row">
+      <button type="button" class="btn" id="restart">از اول</button>
+      <button type="button" class="btn" id="follow" aria-pressed="false">نمای نزدیک</button>
+      <button type="button" class="btn" id="speed">سرعت ۱×</button>
+    </div>
+    <p class="hint" id="note"></p>
+    <div class="links">
+      <span class="lead">مسیریابی با برنامه‌ی نقشه</span>
+      <a class="btn" href="https://balad.ir/p/35TdziY9r2NXXR" target="_blank" rel="noopener">بلد</a>
+      <a class="btn" href="https://nshn.ir/sbWeCYpBGQgV" target="_blank" rel="noopener">نشان</a>
+      <a class="btn" href="https://maps.app.goo.gl/XArRUPFowSLYai656" target="_blank" rel="noopener">گوگل مپ</a>
+      <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=36.938837,49.500984" target="_blank" rel="noopener">مسیریابی از موقعیت من</a>
+      <a class="btn" href="./#route">ویدیوی مسیر</a>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ============ نقطه‌ها (مختصات) ============ */
+  const START = { lat: 36.89944, lng: 49.49306 };     // مرکز شهر رستم‌آباد
+  const END   = { lat: 36.938837, lng: 49.500984 };   // اقامتگاه
+  // اگر دریافت مسیر واقعی ممکن نشد، این مسیر تقریبی (از کنار روستای امین‌آباد) نمایش داده می‌شود
+  const FALLBACK = {
+    pts: [[36.89944, 49.49306], [36.9130, 49.4985], [36.93278, 49.50611], [36.938837, 49.500984]],
+    dist: 8000, dur: 600, approx: true
+  };
+  const ROUTE_URL = `https://router.project-osrm.org/route/v1/driving/${START.lng},${START.lat};${END.lng},${END.lat}?overview=full&geometries=geojson`;
+  const TILE_URL = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  const BASE_MS = 18000;                               // مدت انیمیشن در سرعت ۱×
+
+  // مسیر دقیق ثبت‌شده با ابزار ثبت مسیر (route-editor.html یا ?edit=1) به شکل «عرض,طول;عرض,طول;...»
+  // اگر این متن پر باشد، مسیر همین نقاط نمایش داده می‌شود و به هیچ سرویس آنلاینی نیاز نیست.
+  const ROUTE = "";
+  const STATIC_MIN = 10;                               // زمان تقریبی با خودرو (دقیقه)
+  const EDIT = true;       // حالت ثبت مسیر
+  /* ==========================================*/
+
+  const TILE = 256, MINZ = 6, MAXZ = 18, R = 6371000, RAD = Math.PI / 180;
+  const $ = s => document.querySelector(s);
+  const faNum = (n, o) => Number(n).toLocaleString("fa-IR", o);
+  const mapEl = $("#map"), tilesEl = $("#tiles"), svg = $("#overlay");
+  const elStart = $("#mkStart"), elEnd = $("#mkEnd"), elCar = $("#car"), carBody = $("#carBody");
+  const P = { casing: $("#casing"), ghost: $("#ghost"), dirt: $("#dirt"), prog: $("#prog") };
+
+  let W = 0, H = 0, z = 13, cx = 0, cy = 0;
+  let path = [], cum = [], total = 0, dirtFrom = 0;
+  let p = 0, playing = false, speed = 1, follow = false, last = 0, heading = 0, ready = false;
+  const tiles = new Map();
+  let loaded = 0, failed = 0;
+
+  /* ---------- Web Mercator ---------- */
+  const proj = (lat, lng, zz) => {
+    const s = TILE * 2 ** zz, sin = Math.sin(lat * RAD);
+    return [(lng + 180) / 360 * s, (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * s];
+  };
+  const unproj = (x, y, zz) => {
+    const s = TILE * 2 ** zz, n = Math.PI - 2 * Math.PI * y / s;
+    return [Math.atan(Math.sinh(n)) / RAD, x / s * 360 - 180];
+  };
+  const toScreen = (lat, lng) => { const [x, y] = proj(lat, lng, z); return [x - cx + W / 2, y - cy + H / 2]; };
+  const hav = (a, b) => {
+    const dLat = (b[0] - a[0]) * RAD, dLng = (b[1] - a[1]) * RAD;
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * RAD) * Math.cos(b[0] * RAD) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+
+  /* ---------- Tiles ---------- */
+  function renderTiles() {
+    const n = 2 ** z;
+    const x0 = Math.floor((cx - W / 2) / TILE), x1 = Math.floor((cx + W / 2) / TILE);
+    const y0 = Math.floor((cy - H / 2) / TILE), y1 = Math.floor((cy + H / 2) / TILE);
+    const need = new Set();
+    for (let ty = y0; ty <= y1; ty++) {
+      if (ty < 0 || ty >= n) continue;
+      for (let tx = x0; tx <= x1; tx++) {
+        const wx = ((tx % n) + n) % n, key = `${z}/${tx}/${ty}`;
+        need.add(key);
+        let img = tiles.get(key);
+        if (!img) {
+          img = new Image();
+          img.className = "tile"; img.alt = ""; img.draggable = false; img.decoding = "async";
+          img.onload = () => { loaded++; img.classList.add("ok"); };
+          img.onerror = () => { failed++; img.style.display = "none"; };
+          img.src = TILE_URL(z, wx, ty);
+          tilesEl.appendChild(img);
+          tiles.set(key, img);
+        }
+        img.style.transform = `translate(${Math.round(tx * TILE - cx + W / 2)}px,${Math.round(ty * TILE - cy + H / 2)}px)`;
+      }
+    }
+    for (const [k, img] of tiles) if (!need.has(k)) { img.remove(); tiles.delete(k); }
+  }
+
+  /* ---------- Path helpers ---------- */
+  function setPath(pts, dirtStart) {
+    path = pts; dirtFrom = dirtStart;
+    cum = [0];
+    for (let i = 1; i < pts.length; i++) cum[i] = cum[i - 1] + hav(pts[i - 1], pts[i]);
+    total = cum[cum.length - 1] || 1;
+  }
+  function at(prog) {
+    const d = Math.min(1, Math.max(0, prog)) * total;
+    let lo = 0, hi = cum.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= d) lo = m; else hi = m; }
+    const seg = (cum[hi] - cum[lo]) || 1, f = Math.min(1, Math.max(0, (d - cum[lo]) / seg));
+    const a = path[lo], b = path[hi];
+    return { lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, i: lo };
+  }
+  const line = pts => pts.map((q, i) => { const [x, y] = toScreen(q[0], q[1]); return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); }).join("");
+  const put = (el, lat, lng) => { const [x, y] = toScreen(lat, lng); el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`; };
+
+  /* ---------- Drawing ---------- */
+  function drawStatic() {
+    if (path.length && !EDIT) put(elStart, path[0][0], path[0][1]); else put(elStart, START.lat, START.lng);
+    put(elEnd, END.lat, END.lng);
+    if (!path.length) return;
+    P.casing.setAttribute("d", line(path));
+    P.ghost.setAttribute("d", line(path.slice(0, dirtFrom + 1)));
+    P.dirt.setAttribute("d", dirtFrom < path.length - 1 ? line(path.slice(dirtFrom)) : "");
+  }
+  function drawProgress() {
+    if (!path.length) { elCar.style.visibility = "hidden"; return; }
+    elCar.style.visibility = "visible";
+    const pos = at(p);
+    const pts = path.slice(0, pos.i + 1); pts.push([pos.lat, pos.lng]);
+    P.prog.setAttribute("d", p > 0 ? line(pts) : "");
+    put(elCar, pos.lat, pos.lng);
+    // جهت خودرو: به سمت نقطه‌ای کمی جلوتر
+    const ahead = at(Math.min(1, p + 60 / total));
+    const a = toScreen(pos.lat, pos.lng), b = toScreen(ahead.lat, ahead.lng);
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 1) {
+      const target = Math.atan2(b[0] - a[0], -(b[1] - a[1])) / RAD;
+      let diff = ((target - heading + 540) % 360) - 180;
+      heading += diff * 0.25;
+    }
+    carBody.style.transform = `rotate(${heading.toFixed(1)}deg)`;
+  }
+  function render() { renderTiles(); drawStatic(); drawProgress(); drawPts(); }
+
+  /* ---------- View control ---------- */
+  function resize() {
+    const r = mapEl.getBoundingClientRect(); W = r.width; H = r.height;
+    svg.setAttribute("width", W); svg.setAttribute("height", H);
+  }
+  function fitView() {
+    const pts = path.length ? path : [[START.lat, START.lng], [END.lat, END.lng]];
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    pts.forEach(q => { minLat = Math.min(minLat, q[0]); maxLat = Math.max(maxLat, q[0]); minLng = Math.min(minLng, q[1]); maxLng = Math.max(maxLng, q[1]); });
+    const padX = 46, padTop = 64, padBottom = 40;
+    let best = MINZ;
+    for (let zz = MAXZ - 1; zz >= MINZ; zz--) {
+      const a = proj(maxLat, minLng, zz), b = proj(minLat, maxLng, zz);
+      if (Math.abs(b[0] - a[0]) <= W - 2 * padX && Math.abs(b[1] - a[1]) <= H - padTop - padBottom) { best = zz; break; }
+    }
+    z = best;
+    const [x1, y1] = proj(maxLat, minLng, z), [x2, y2] = proj(minLat, maxLng, z);
+    cx = (x1 + x2) / 2; cy = (y1 + y2) / 2 - (padTop - padBottom) / 2;
+    render();
+  }
+  function zoomAt(delta, sx, sy) {
+    const nz = Math.min(MAXZ, Math.max(MINZ, z + delta));
+    if (nz === z) return;
+    sx = sx ?? W / 2; sy = sy ?? H / 2;
+    const [lat, lng] = unproj(cx - W / 2 + sx, cy - H / 2 + sy, z);
+    z = nz;
+    const [x, y] = proj(lat, lng, z);
+    cx = x - sx + W / 2; cy = y - sy + H / 2;
+    render();
+  }
+  function setFollow(on) {
+    follow = on;
+    const b = $("#follow");
+    b.setAttribute("aria-pressed", String(on));
+    b.textContent = on ? "نمای کلی" : "نمای نزدیک";
+    if (on) {
+      z = Math.max(z, 15);
+      const pos = at(p), [x, y] = proj(pos.lat, pos.lng, z); cx = x; cy = y; render();
+    } else fitView();
+  }
+
+  /* ---------- Animation ---------- */
+  const scrub = $("#scrub"), playBtn = $("#play");
+  function ui() {
+    playBtn.textContent = playing ? "توقف" : (p >= 1 ? "پخش دوباره" : "پخش");
+    scrub.value = Math.round(p * 1000);
+  }
+  function update() {
+    if (follow) {
+      const pos = at(p), [x, y] = proj(pos.lat, pos.lng, z);
+      cx += (x - cx) * 0.25; cy += (y - cy) * 0.25;
+      render();
+    } else drawProgress();
+    scrub.value = Math.round(p * 1000);
+  }
+  function frame(t) {
+    if (!playing) return;
+    const dt = Math.min(64, t - last); last = t;
+    p = Math.min(1, p + dt / (BASE_MS / speed));
+    update();
+    if (p >= 1) { playing = false; ui(); return; }
+    requestAnimationFrame(frame);
+  }
+  function play() {
+    if (!ready) return;
+    if (p >= 1) p = 0;
+    playing = true; last = performance.now(); ui(); requestAnimationFrame(frame);
+  }
+  function pause() { playing = false; ui(); }
+
+  playBtn.addEventListener("click", () => playing ? pause() : play());
+  $("#restart").addEventListener("click", () => { p = 0; update(); play(); });
+  $("#follow").addEventListener("click", () => setFollow(!follow));
+  $("#speed").addEventListener("click", e => {
+    speed = speed === 1 ? 2 : speed === 2 ? 0.5 : 1;
+    e.currentTarget.textContent = "سرعت " + faNum(speed) + "×";
+  });
+  scrub.addEventListener("input", () => { const v = scrub.value / 1000; pause(); p = v; update(); ui(); });
+
+  /* ---------- Pan / zoom (mouse, touch, wheel) ---------- */
+  const ptrs = new Map();
+  let pinchBase = 0;
+  mapEl.addEventListener("pointerdown", e => {
+    if (e.target.closest(".zoom")) return;
+    mapEl.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tap = ptrs.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+    mapEl.classList.add("dragging");
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchBase = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  mapEl.addEventListener("pointermove", e => {
+    const q = ptrs.get(e.pointerId); if (!q) return;
+    if (ptrs.size === 1) {
+      if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 6) tap = null;
+      const dx = e.clientX - q.x, dy = e.clientY - q.y;
+      if (dx || dy) { if (follow) setFollowQuiet(); cx -= dx; cy -= dy; render(); }
+    }
+    q.x = e.clientX; q.y = e.clientY;
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), r = mapEl.getBoundingClientRect();
+      const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+      if (pinchBase && d / pinchBase > 1.5) { zoomAt(1, mx, my); pinchBase = d; }
+      else if (pinchBase && d / pinchBase < 0.67) { zoomAt(-1, mx, my); pinchBase = d; }
+    }
+  });
+  const endPtr = e => { ptrs.delete(e.pointerId); if (!ptrs.size) mapEl.classList.remove("dragging"); pinchBase = 0; };
+  mapEl.addEventListener("pointerup", e => {
+    if (EDIT && tap && ptrs.size === 1 && performance.now() - tap.t < 700) addPoint(e);
+    tap = null; endPtr(e);
+  });
+  mapEl.addEventListener("pointercancel", endPtr);
+  mapEl.addEventListener("wheel", e => {
+    e.preventDefault();
+    const r = mapEl.getBoundingClientRect();
+    zoomAt(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  $("#zin").addEventListener("click", () => zoomAt(1));
+  $("#zout").addEventListener("click", () => zoomAt(-1));
+  function setFollowQuiet() {           // کاربر نقشه را کشید؛ حالت دنبال‌کردن خاموش شود
+    follow = false;
+    const b = $("#follow"); b.setAttribute("aria-pressed", "false"); b.textContent = "نمای نزدیک";
+  }
+  window.addEventListener("resize", () => { resize(); render(); });
+
+  /* ---------- Route ---------- */
+  function showStats(route) {
+    const km = route.dist / 1000, min = Math.max(1, Math.round(route.dur / 60));
+    $("#stats").textContent = `حدود ${faNum(km, { maximumFractionDigits: 1 })} کیلومتر · حدود ${faNum(min)} دقیقه با خودرو`;
+    const dirtLen = total - cum[dirtFrom];
+    const parts = [];
+    if (route.approx) parts.push("مسیر دقیق دریافت نشد؛ خط رسم‌شده تقریبی است. برای مسیر دقیق از دکمه‌های مسیریابی پایین استفاده کنید.");
+    if (dirtLen > 25) parts.push(`<span class="legend"><i></i> نقطه‌چین: ادامه‌ی مسیر تا خود اقامتگاه (خاکی)</span>`);
+    else parts.push("بخش پایانی مسیر خاکی است.");
+    $("#note").innerHTML = parts.join("<br>");
+  }
+
+
+  /* ---------- Smoothing (Catmull-Rom) and simplification ---------- */
+  function crSmooth(P, n) {
+    if (P.length < 3) return P.slice();
+    const k = Math.cos(P[0][0] * RAD), out = [];
+    const ext = [P[0], ...P, P[P.length - 1]];
+    const dist = (a, b) => Math.max(Math.hypot((b[0] - a[0]), (b[1] - a[1]) * k), 1e-9) ** 0.5;
+    for (let i = 1; i < ext.length - 2; i++) {
+      const p0 = ext[i - 1], p1 = ext[i], p2 = ext[i + 1], p3 = ext[i + 2];
+      const t0 = 0, t1 = t0 + dist(p0, p1), t2 = t1 + dist(p1, p2), t3 = t2 + dist(p2, p3);
+      for (let j = 0; j < n; j++) {
+        const t = t1 + (t2 - t1) * j / n, q = [0, 0];
+        for (let c = 0; c < 2; c++) {
+          const a1 = ((t1 - t) * p0[c] + (t - t0) * p1[c]) / (t1 - t0);
+          const a2 = ((t2 - t) * p1[c] + (t - t1) * p2[c]) / (t2 - t1);
+          const a3 = ((t3 - t) * p2[c] + (t - t2) * p3[c]) / (t3 - t2);
+          const b1 = ((t2 - t) * a1 + (t - t0) * a2) / (t2 - t0);
+          const b2 = ((t3 - t) * a2 + (t - t1) * a3) / (t3 - t1);
+          q[c] = ((t2 - t) * b1 + (t - t1) * b2) / (t2 - t1);
+        }
+        out.push(q);
+      }
+    }
+    out.push(P[P.length - 1]);
+    return out;
+  }
+  function rdp(P, tol) {                         // ساده‌سازی مسیر (Ramer–Douglas–Peucker) با خطای tol متر
+    if (P.length < 3) return P.slice();
+    const k = Math.cos(P[0][0] * RAD), M = 111320;
+    const xy = P.map(q => [q[1] * M * k, q[0] * M]);
+    const keep = new Array(P.length).fill(false); keep[0] = keep[P.length - 1] = true;
+    const stack = [[0, P.length - 1]];
+    while (stack.length) {
+      const [a, b] = stack.pop(); let idx = -1, max = 0;
+      const [ax, ay] = xy[a], [bx, by] = xy[b], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1e-9;
+      for (let i = a + 1; i < b; i++) {
+        const d = Math.abs(dy * xy[i][0] - dx * xy[i][1] + bx * ay - by * ax) / L;
+        if (d > max) { max = d; idx = i; }
+      }
+      if (max > tol && idx > 0) { keep[idx] = true; stack.push([a, idx], [idx, b]); }
+    }
+    return P.filter((_, i) => keep[i]);
+  }
+  const parseRoute = str => str.split(";").map(s => s.trim().split(",").map(Number)).filter(a => a.length === 2 && a.every(Number.isFinite));
+
+  /* ---------- Route recording tool (?edit=1) ---------- */
+  let editPts = [], watchId = null, gpsPts = [], tap = null;
+  const ptsG = $("#pts");
+  function drawPts() {
+    if (!EDIT) return;
+    ptsG.innerHTML = editPts.map((q, i) => { const [x, y] = toScreen(q[0], q[1]); return `<circle class="${i ? "" : "first"}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${i ? 4 : 6}"/>`; }).join("");
+  }
+  const routeText = () => editPts.map(q => q[0].toFixed(5) + "," + q[1].toFixed(5)).join(";");
+  function refreshEdit() {
+    setPath(editPts.length > 1 ? editPts.slice() : [], Math.max(0, editPts.length - 1));
+    let d = 0; for (let i = 1; i < editPts.length; i++) d += hav(editPts[i - 1], editPts[i]);
+    $("#eInfo").textContent = `${faNum(editPts.length)} نقطه · ${faNum(d / 1000, { maximumFractionDigits: 2 })} کیلومتر`;
+    $("#eOut").value = routeText();
+    ready = editPts.length > 1;
+    p = 0; update(); render();
+  }
+  function addPoint(e) {
+    const r = mapEl.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top;
+    const [lat, lng] = unproj(cx - W / 2 + sx, cy - H / 2 + sy, z);
+    editPts.push([lat, lng]); refreshEdit();
+    $("#eMsg").textContent = z < 15 ? "برای دقت بیشتر، نقشه را بزرگ‌تر کنید (زوم ۱۵ به بالا)." : "";
+  }
+  function initEdit() {
+    document.body.classList.add("edit");
+    document.title = "ثبت مسیر دقیق";
+    resize(); setPath([], 0); fitView();
+    $("#eUndo").addEventListener("click", () => { editPts.pop(); refreshEdit(); });
+    $("#eClear").addEventListener("click", () => { editPts = []; gpsPts = []; refreshEdit(); });
+    $("#ePreview").addEventListener("click", () => { if (editPts.length > 1) { fitView(); play(); } });
+    $("#eCopy").addEventListener("click", async () => {
+      const t = routeText(), o = $("#eOut");
+      if (!t) { $("#eMsg").textContent = "هنوز نقطه‌ای ثبت نشده است."; return; }
+      try { await navigator.clipboard.writeText(t); $("#eMsg").textContent = "کپی شد. حالا در چت بچسبانید و برای من بفرستید."; }
+      catch (e) { $("#eDet").open = true; o.removeAttribute("readonly"); o.focus(); o.select(); $("#eMsg").textContent = "متن انتخاب شد؛ آن را دستی کپی کنید."; }
+    });
+    $("#eGps").addEventListener("click", e => {
+      const b = e.currentTarget;
+      if (watchId !== null) {                       // توقف ضبط
+        navigator.geolocation.clearWatch(watchId); watchId = null;
+        b.setAttribute("aria-pressed", "false"); b.textContent = "ضبط با GPS";
+        editPts = rdp(gpsPts, 5); refreshEdit(); if (editPts.length > 1) fitView();
+        $("#eMsg").textContent = `ضبط تمام شد و به ${faNum(editPts.length)} نقطه ساده شد.`;
+        return;
+      }
+      if (!navigator.geolocation) { $("#eMsg").textContent = "این مرورگر GPS را پشتیبانی نمی‌کند."; return; }
+      gpsPts = [];
+      watchId = navigator.geolocation.watchPosition(pos => {
+        if (pos.coords.accuracy > 40) return;
+        const q = [pos.coords.latitude, pos.coords.longitude], l = gpsPts[gpsPts.length - 1];
+        if (!l || hav(l, q) > 8) {
+          gpsPts.push(q); editPts = gpsPts.slice();
+          $("#eMsg").textContent = `در حال ضبط… ${faNum(gpsPts.length)} نقطه`;
+          refreshEdit();
+        }
+      }, err => { $("#eMsg").textContent = "دسترسی به موقعیت مکانی داده نشد (GPS و اجازه‌ی مرورگر را بررسی کنید)."; },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+      b.setAttribute("aria-pressed", "true"); b.textContent = "توقف ضبط";
+      $("#eMsg").textContent = "ضبط شروع شد؛ با خودرو مسیر را بروید و در پایان «توقف ضبط» را بزنید.";
+    });
+  }
+
+  async function getRoute() {
+    if (ROUTE) {                                   // مسیر دقیقِ ثبت‌شده
+      const raw = parseRoute(ROUTE);
+      if (raw.length > 1) {
+        const pts = raw.length <= 250 ? crSmooth(raw, 6) : raw;
+        let d = 0; for (let i = 1; i < pts.length; i++) d += hav(pts[i - 1], pts[i]);
+        return { pts, dist: d, dur: STATIC_MIN * 60, fixed: true };
+      }
+    }
+    const key = "amoo-route-v1";
+    try { const c = JSON.parse(localStorage.getItem(key)); if (c && c.pts && c.pts.length > 1) return c; } catch (e) {}
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 9000);
+    try {
+      const r = await fetch(ROUTE_URL, { signal: ctl.signal });
+      const j = await r.json();
+      const rt = j.routes && j.routes[0];
+      if (!rt) throw new Error("no route");
+      const out = { pts: rt.geometry.coordinates.map(c => [c[1], c[0]]), dist: rt.distance, dur: rt.duration };
+      try { localStorage.setItem(key, JSON.stringify(out)); } catch (e) {}
+      return out;
+    } finally { clearTimeout(timer); }
+  }
+
+  async function init() {
+    if (EDIT) { initEdit(); return; }
+    resize();
+    fitView();
+    let route;
+    try { route = await getRoute(); }
+    catch (e) { console.warn("route:", e); route = FALLBACK; }
+
+    // ادامه‌ی مسیر تا خودِ اقامتگاه (بخش خاکی که روی نقشه‌ها ثبت نشده)
+    const pts = route.pts.slice();
+    const endPt = pts[pts.length - 1];
+    const gap = hav(endPt, [END.lat, END.lng]);
+    const dirtStart = pts.length - 1;
+    if (gap > 12) pts.push([END.lat, END.lng]);
+    setPath(pts, dirtStart);
+    showStats(route);
+    fitView();
+    ready = true;
+    p = 0; ui();
+
+    const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { p = 1; update(); ui(); }
+    else setTimeout(play, 700);
+  }
+
+  // اگر نقشه‌ی زمینه بارگذاری نشد، پیام کوتاه نشان بده (مسیر همچنان رسم می‌شود)
+  setTimeout(() => {
+    if (loaded === 0 && failed > 0) {
+      const n = $("#notice");
+      n.textContent = "نقشه‌ی زمینه بارگذاری نشد؛ مسیر همچنان نمایش داده می‌شود.";
+      n.hidden = false;
+    }
+  }, 6000);
+
+  init();
+})();
+</script>
+</body>
+</html>
