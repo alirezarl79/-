@@ -597,10 +597,15 @@
         <input type="number" id="setHolidayCoeff" value="1.8" step="0.1" />
       </div>
       <div class="form-group">
-        <label>حساسیت تشخیص تکان (۱۵–۴۰)</label>
-        <input type="range" id="setSensitivity" min="15" max="40" value="22" />
-        <div style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:4px;">
-          مقدار فعلی: <span id="sensValue">۲۲</span>
+        <label>حساسیت تشخیص تکان</label>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">
+          عدد بالاتر = حساسیت کمتر (تکان قوی‌تر لازم است)
+        </div>
+        <input type="range" id="setSensitivity" min="25" max="90" value="50" step="1" />
+        <div style="text-align:center;font-size:0.85rem;color:var(--muted);margin-top:6px;">
+          مقدار فعلی: <span id="sensValue">۵۰</span>
+          <br>
+          <span style="font-size:0.75rem;">۲۵ = خیلی حساس | ۹۰ = خیلی کم‌حساس</span>
         </div>
       </div>
       <div class="form-group">
@@ -654,7 +659,7 @@
       rate: 105800,
       coeff: 1.4,
       holidayCoeff: 1.8,
-      sensitivity: 22,
+      sensitivity: 50,
       detectFrom: '05:00'
     };
     settings = { ...defaults, ...settings };
@@ -933,13 +938,11 @@
         (acc.z || 0) ** 2
       );
 
-      const threshold = Number(settings.sensitivity) || 22;
+      const threshold = Number(settings.sensitivity) || 50;
       const now = Date.now();
 
-      // Debug: you can uncomment next line to see values while testing
-      // console.log('motion total:', total.toFixed(1));
-
-      if (total > threshold && (now - lastShake) > 1600) {
+      // فقط تکان‌های قوی‌تر از مقدار تنظیم‌شده را قبول می‌کند
+      if (total > threshold && (now - lastShake) > 2200) {
         lastShake = now;
         onShakeDetected();
       }
@@ -1080,7 +1083,7 @@
       settings.rate = Number(document.getElementById('setRate').value) || 105800;
       settings.coeff = Number(document.getElementById('setCoeff').value) || 1.4;
       settings.holidayCoeff = Number(document.getElementById('setHolidayCoeff').value) || 1.8;
-      settings.sensitivity = Number(document.getElementById('setSensitivity').value) || 22;
+      settings.sensitivity = Number(document.getElementById('setSensitivity').value) || 50;
       settings.detectFrom = document.getElementById('setDetectFrom').value;
 
       localStorage.setItem('tt_settings', JSON.stringify(settings));
