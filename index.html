@@ -499,7 +499,7 @@
     <!-- HOME PAGE -->
     <div id="page-home" class="page active">
       <div class="header">
-        <h1>⏱️ ردیاب ساعت کاری <small style="font-size:0.65rem;opacity:0.55;font-weight:400;">v4</small></h1>
+        <h1>⏱️ ردیاب ساعت کاری <small style="font-size:0.65rem;opacity:0.55;font-weight:400;">v5</small></h1>
         <div class="header-actions">
           <button class="icon-btn" onclick="openSettings()" title="تنظیمات">⚙️</button>
         </div>
@@ -533,6 +533,11 @@
         <button class="btn btn-success" onclick="manualExit()">
           <span class="icon">📤</span>
           خروج دستی
+        </button>
+      </div>
+      <div style="margin-bottom:18px;">
+        <button class="btn btn-outline" style="width:100%;padding:12px;" onclick="markLeaveToday()">
+          🏖️ ثبت مرخصی امروز
         </button>
       </div>
 
@@ -579,14 +584,54 @@
         <h1>تنظیمات</h1>
       </div>
 
+      <div class="section-title" style="margin-top:4px;">اطلاعات شخصی</div>
       <div class="form-group">
-        <label>ساعت شروع اداری</label>
+        <label>نام</label>
+        <input type="text" id="setFirstName" placeholder="نام" />
+      </div>
+      <div class="form-group">
+        <label>نام خانوادگی</label>
+        <input type="text" id="setLastName" placeholder="نام خانوادگی" />
+      </div>
+      <div class="form-group">
+        <label>کد ملی</label>
+        <input type="text" id="setNationalId" placeholder="کد ملی" inputmode="numeric" />
+      </div>
+      <div class="form-group">
+        <label>کد پرسنلی</label>
+        <input type="text" id="setPersonnelCode" placeholder="کد پرسنلی" />
+      </div>
+      <div class="form-group">
+        <label>محل خدمت</label>
+        <input type="text" id="setWorkplace" placeholder="محل خدمت / واحد" />
+      </div>
+
+      <div class="section-title" style="margin-top:20px;">ساعات کاری</div>
+      <div class="form-group">
+        <label>ساعت شروع اداری (روزهای عادی)</label>
         <input type="time" id="setStart" value="07:45" />
       </div>
       <div class="form-group">
-        <label>ساعت پایان اداری</label>
+        <label>ساعت پایان اداری (روزهای عادی)</label>
         <input type="time" id="setEnd" value="13:15" />
       </div>
+      <div class="form-group">
+        <label>ساعت شروع پنج‌شنبه</label>
+        <input type="time" id="setThuStart" value="08:00" />
+      </div>
+      <div class="form-group">
+        <label>ساعت پایان پنج‌شنبه</label>
+        <input type="time" id="setThuEnd" value="12:00" />
+      </div>
+      <div class="form-group">
+        <label>ضریب پنج‌شنبه (چون کوتاه‌تره، معمولاً ۲)</label>
+        <input type="number" id="setThuCoeff" value="2" step="0.1" />
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;">
+          مثال: ۴ ساعت کار × ۲ = ۸ ساعت حساب می‌شود
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px;">اضافه‌کاری و سنسور</div>
       <div class="form-group">
         <label>نرخ هر ساعت اضافه‌کاری (تومان)</label>
         <input type="number" id="setRate" value="105800" />
@@ -659,11 +704,19 @@
     const defaults = {
       start: '07:45',
       end: '13:15',
+      thuStart: '08:00',
+      thuEnd: '12:00',
+      thuCoeff: 2,
       rate: 105800,
       coeff: 1.4,
       holidayCoeff: 1.8,
       sensitivity: 50,
-      detectFrom: '05:00'
+      detectFrom: '05:00',
+      firstName: '',
+      lastName: '',
+      nationalId: '',
+      personnelCode: '',
+      workplace: ''
     };
     settings = { ...defaults, ...settings };
 
@@ -710,39 +763,68 @@
     }
 
     function isFriday(date) {
-      return new Date(date).getDay() === 5; // Friday
+      return new Date(date).getDay() === 5; // جمعه
+    }
+
+    function isThursday(date) {
+      return new Date(date).getDay() === 4; // پنج‌شنبه
     }
 
     function isHoliday(date) {
-      // Simple: only Friday for now. Can expand later with official holidays list.
       return isFriday(date);
     }
 
     // ==================== CALCULATION ====================
     function calcDay(record) {
-      if (!record.in || !record.out) {
-        return { workMin: 0, otMin: 0, isHoliday: false };
+      // مرخصی
+      if (record.leave) {
+        return { workMin: 0, otMin: 0, isHoliday: false, isLeave: true, isThursday: false, countedMin: 0 };
       }
+
+      if (!record.in || !record.out) {
+        return { workMin: 0, otMin: 0, isHoliday: false, isLeave: false, isThursday: false, countedMin: 0 };
+      }
+
       const inDate = new Date(record.in);
       const outDate = new Date(record.out);
-      const workMin = (outDate - inDate) / 60000;
+      const workMin = (outDate - inDate) / 60000; // دقیقه واقعی کارکرد
 
-      const startMin = parseTime(settings.start);
-      const endMin = parseTime(settings.end);
-      const officialMin = endMin - startMin; // e.g. 13:15 - 7:45 = 330 min = 5.5h
-
-      let otMin = 0;
       const dayIsHoliday = isHoliday(inDate);
+      const dayIsThursday = isThursday(inDate);
 
-      if (dayIsHoliday) {
-        // All work on holiday is overtime
+      let officialMin, countedMin, otMin = 0;
+
+      if (dayIsThursday) {
+        // پنج‌شنبه: ساعت کوتاه‌تر + ضریب دوبرابر
+        const thuStart = parseTime(settings.thuStart || '08:00');
+        const thuEnd = parseTime(settings.thuEnd || '12:00');
+        officialMin = thuEnd - thuStart; // معمولاً ۲۴۰ دقیقه (۴ ساعت)
+        const thuCoeff = Number(settings.thuCoeff) || 2;
+        countedMin = workMin * thuCoeff; // ۴ ساعت کار = ۸ ساعت حساب می‌شود
+        // اضافه‌کاری پنج‌شنبه: اگر بیشتر از ۴ ساعت واقعی کار کرده باشد
+        otMin = Math.max(0, workMin - officialMin) * thuCoeff;
+      } else if (dayIsHoliday) {
+        // جمعه / تعطیل: همه کارکرد اضافه‌کاری است
+        officialMin = 0;
+        countedMin = workMin;
         otMin = workMin;
       } else {
-        // Normal day: anything beyond official hours
+        // روز عادی
+        const startMin = parseTime(settings.start);
+        const endMin = parseTime(settings.end);
+        officialMin = endMin - startMin;
+        countedMin = workMin;
         otMin = Math.max(0, workMin - officialMin);
       }
 
-      return { workMin, otMin, isHoliday: dayIsHoliday };
+      return {
+        workMin,          // دقیقه واقعی حضور
+        countedMin,       // دقیقه حساب‌شده (برای پنج‌شنبه دوبرابر)
+        otMin,
+        isHoliday: dayIsHoliday,
+        isThursday: dayIsThursday,
+        isLeave: false
+      };
     }
 
     function getMonthStats() {
@@ -850,15 +932,31 @@
       }
 
       const makeItem = (r) => {
-        const { workMin, otMin, isHoliday } = calcDay(r);
+        const { workMin, otMin, isHoliday, isThursday, isLeave, countedMin } = calcDay(r);
         const shamsi = getShamsi(new Date(r.date + 'T12:00:00'));
+        let badge = '';
+        let times = '';
+        if (isLeave) {
+          badge = '<div class="ot-badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;">مرخصی</div>';
+          times = 'مرخصی ثبت شده';
+        } else {
+          times = `${formatTime(r.in)} → ${r.out ? formatTime(r.out) : '—'}`;
+          if (isThursday) {
+            badge = `<div class="ot-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa;">${formatDuration(countedMin)} (×۲)</div>`;
+          } else if (isHoliday) {
+            badge = `<div class="ot-badge">${formatDuration(otMin)} اضافه</div>`;
+          } else {
+            badge = `<div class="ot-badge">${formatDuration(otMin)} اضافه</div>`;
+          }
+        }
+        const flag = isHoliday ? ' 🟥' : (isThursday ? ' 🟣' : '');
         return `
           <div class="history-item">
             <div>
-              <div class="date">${shamsi}${isHoliday ? ' 🟥' : ''}</div>
-              <div class="times">${formatTime(r.in)} → ${r.out ? formatTime(r.out) : '—'}</div>
+              <div class="date">${shamsi}${flag}</div>
+              <div class="times">${times}</div>
             </div>
-            <div class="ot-badge">${formatDuration(otMin)} اضافه</div>
+            ${badge}
           </div>
         `;
       };
@@ -1066,14 +1164,22 @@
     }
 
     function loadSettingsToForm() {
-      document.getElementById('setStart').value = settings.start;
-      document.getElementById('setEnd').value = settings.end;
-      document.getElementById('setRate').value = settings.rate;
-      document.getElementById('setCoeff').value = settings.coeff;
-      document.getElementById('setHolidayCoeff').value = settings.holidayCoeff;
-      document.getElementById('setSensitivity').value = settings.sensitivity;
-      document.getElementById('sensValue').textContent = toPersianDigits(settings.sensitivity);
-      document.getElementById('setDetectFrom').value = settings.detectFrom;
+      document.getElementById('setStart').value = settings.start || '07:45';
+      document.getElementById('setEnd').value = settings.end || '13:15';
+      document.getElementById('setThuStart').value = settings.thuStart || '08:00';
+      document.getElementById('setThuEnd').value = settings.thuEnd || '12:00';
+      document.getElementById('setThuCoeff').value = settings.thuCoeff || 2;
+      document.getElementById('setRate').value = settings.rate || 105800;
+      document.getElementById('setCoeff').value = settings.coeff || 1.4;
+      document.getElementById('setHolidayCoeff').value = settings.holidayCoeff || 1.8;
+      document.getElementById('setSensitivity').value = settings.sensitivity || 50;
+      document.getElementById('sensValue').textContent = toPersianDigits(settings.sensitivity || 50);
+      document.getElementById('setDetectFrom').value = settings.detectFrom || '05:00';
+      document.getElementById('setFirstName').value = settings.firstName || '';
+      document.getElementById('setLastName').value = settings.lastName || '';
+      document.getElementById('setNationalId').value = settings.nationalId || '';
+      document.getElementById('setPersonnelCode').value = settings.personnelCode || '';
+      document.getElementById('setWorkplace').value = settings.workplace || '';
     }
 
     document.getElementById('setSensitivity').addEventListener('input', (e) => {
@@ -1083,15 +1189,45 @@
     function saveSettings() {
       settings.start = document.getElementById('setStart').value;
       settings.end = document.getElementById('setEnd').value;
+      settings.thuStart = document.getElementById('setThuStart').value;
+      settings.thuEnd = document.getElementById('setThuEnd').value;
+      settings.thuCoeff = Number(document.getElementById('setThuCoeff').value) || 2;
       settings.rate = Number(document.getElementById('setRate').value) || 105800;
       settings.coeff = Number(document.getElementById('setCoeff').value) || 1.4;
       settings.holidayCoeff = Number(document.getElementById('setHolidayCoeff').value) || 1.8;
       settings.sensitivity = Number(document.getElementById('setSensitivity').value) || 50;
       settings.detectFrom = document.getElementById('setDetectFrom').value;
+      settings.firstName = document.getElementById('setFirstName').value.trim();
+      settings.lastName = document.getElementById('setLastName').value.trim();
+      settings.nationalId = document.getElementById('setNationalId').value.trim();
+      settings.personnelCode = document.getElementById('setPersonnelCode').value.trim();
+      settings.workplace = document.getElementById('setWorkplace').value.trim();
 
       localStorage.setItem('tt_settings', JSON.stringify(settings));
-      showToast('تنظیمات ذخیره شد', 'success');
+      showToast('تنظیمات و اطلاعات شخصی ذخیره شد', 'success');
       updateUI();
+    }
+
+    // ثبت مرخصی برای امروز
+    function markLeaveToday() {
+      const todayKey = getTodayKey();
+      let rec = records.find(r => r.date === todayKey);
+      if (rec && (rec.in || rec.out)) {
+        showToast('امروز ورود/خروج ثبت شده، نمی‌توان مرخصی زد', 'warning');
+        return;
+      }
+      showConfirm('ثبت مرخصی', 'آیا امروز را به عنوان مرخصی ثبت می‌کنید؟', () => {
+        if (rec) {
+          rec.leave = true;
+          rec.in = null;
+          rec.out = null;
+        } else {
+          records.push({ date: todayKey, leave: true, in: null, out: null });
+        }
+        saveRecords();
+        updateUI();
+        showToast('مرخصی امروز ثبت شد', 'success');
+      });
     }
 
     function clearAllData() {
@@ -1109,32 +1245,42 @@
       let totalWorkMin = 0;
       let totalOTMin = 0;
       let totalMoney = 0;
+      let totalCountedMin = 0;
 
       const rows = sorted.map((r, idx) => {
-        const { workMin, otMin, isHoliday } = calcDay(r);
+        const { workMin, otMin, isHoliday, isThursday, isLeave, countedMin } = calcDay(r);
         const money = (otMin / 60) * settings.rate;
         totalWorkMin += workMin;
         totalOTMin += otMin;
         totalMoney += money;
+        totalCountedMin += (countedMin || workMin);
 
         const workH = Math.floor(workMin / 60);
         const workM = Math.round(workMin % 60);
         const otH = Math.floor(otMin / 60);
         const otM = Math.round(otMin % 60);
+        const countedH = Math.floor((countedMin || workMin) / 60);
+        const countedM = Math.round((countedMin || workMin) % 60);
+
+        let type = 'عادی';
+        if (isLeave) type = 'مرخصی';
+        else if (isHoliday) type = 'جمعه / تعطیل';
+        else if (isThursday) type = 'پنج‌شنبه (ضریب ۲)';
 
         return {
           row: idx + 1,
           date: getShamsi(new Date(r.date + 'T12:00:00')),
-          in: formatTime(r.in),
-          out: r.out ? formatTime(r.out) : '—',
-          work: `${workH}:${workM.toString().padStart(2, '0')}`,
-          ot: `${otH}:${otM.toString().padStart(2, '0')}`,
-          money: Math.round(money).toLocaleString('fa-IR'),
-          type: isHoliday ? 'جمعه / تعطیل' : 'عادی'
+          in: isLeave ? '—' : formatTime(r.in),
+          out: isLeave ? '—' : (r.out ? formatTime(r.out) : '—'),
+          work: isLeave ? '—' : `${workH}:${workM.toString().padStart(2, '0')}`,
+          counted: isLeave ? '—' : `${countedH}:${countedM.toString().padStart(2, '0')}`,
+          ot: isLeave ? '—' : `${otH}:${otM.toString().padStart(2, '0')}`,
+          money: isLeave ? '—' : Math.round(money).toLocaleString('fa-IR'),
+          type
         };
       });
 
-      return { rows, totalWorkMin, totalOTMin, totalMoney };
+      return { rows, totalWorkMin, totalOTMin, totalMoney, totalCountedMin };
     }
 
     function exportExcel() {
@@ -1147,37 +1293,42 @@
         return;
       }
 
-      const { rows, totalWorkMin, totalOTMin, totalMoney } = prepareExportData();
+      const { rows, totalWorkMin, totalOTMin, totalMoney, totalCountedMin } = prepareExportData();
 
-      // هدر و داده‌ها
-      const header = ['ردیف', 'تاریخ', 'ساعت ورود', 'ساعت خروج', 'ساعات کار', 'اضافه‌کاری', 'مبلغ (تومان)', 'نوع روز'];
-      const data = rows.map(r => [r.row, r.date, r.in, r.out, r.work, r.ot, r.money, r.type]);
+      // اطلاعات شخصی در بالای فایل
+      const infoRows = [
+        ['گزارش کارکرد'],
+        ['نام', `${settings.firstName || ''} ${settings.lastName || ''}`.trim()],
+        ['کد ملی', settings.nationalId || '—'],
+        ['کد پرسنلی', settings.personnelCode || '—'],
+        ['محل خدمت', settings.workplace || '—'],
+        ['تاریخ گزارش', getShamsi()],
+        []
+      ];
 
-      // ردیف جمع
+      const header = ['ردیف', 'تاریخ', 'ورود', 'خروج', 'ساعات واقعی', 'ساعات حساب‌شده', 'اضافه‌کاری', 'مبلغ (تومان)', 'نوع روز'];
+      const data = rows.map(r => [r.row, r.date, r.in, r.out, r.work, r.counted, r.ot, r.money, r.type]);
+
       const totalWorkH = Math.floor(totalWorkMin / 60);
       const totalWorkM = Math.round(totalWorkMin % 60);
+      const totalCountedH = Math.floor(totalCountedMin / 60);
+      const totalCountedM = Math.round(totalCountedMin % 60);
       const totalOTH = Math.floor(totalOTMin / 60);
       const totalOTM = Math.round(totalOTMin % 60);
       data.push([]);
       data.push(['', 'جمع کل', '', '',
         `${totalWorkH}:${totalWorkM.toString().padStart(2, '0')}`,
+        `${totalCountedH}:${totalCountedM.toString().padStart(2, '0')}`,
         `${totalOTH}:${totalOTM.toString().padStart(2, '0')}`,
         Math.round(totalMoney).toLocaleString('fa-IR'),
         ''
       ]);
 
-      const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+      const ws = XLSX.utils.aoa_to_sheet([...infoRows, header, ...data]);
 
-      // عرض ستون‌ها
       ws['!cols'] = [
-        { wch: 6 },   // ردیف
-        { wch: 18 },  // تاریخ
-        { wch: 12 },  // ورود
-        { wch: 12 },  // خروج
-        { wch: 12 },  // ساعات کار
-        { wch: 12 },  // اضافه کاری
-        { wch: 16 },  // مبلغ
-        { wch: 14 }   // نوع روز
+        { wch: 6 }, { wch: 18 }, { wch: 10 }, { wch: 10 },
+        { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 16 }
       ];
 
       const wb = XLSX.utils.book_new();
